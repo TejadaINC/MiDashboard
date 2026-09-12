@@ -87,37 +87,62 @@ function parseCSV(text) {
   return rows.filter(r => r.some(c => String(c).trim() !== ''));
 }
 
+/* ---------- Normaliza encabezados (minúsculas, sin acentos) ---------- */
+const normHeader = s => String(s).trim().toLowerCase()
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
 /* ============================================================
    Carga de datos
    ============================================================ */
 function cargarTareas(textoCSV) {
   const rows = parseCSV(textoCSV);
-  if (!rows.length) return;
+  if (!rows.length) return { ok: false, motivo: 'El CSV está vacío.' };
 
-  const norm = s => String(s).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const headers = rows[0].map(norm);
+  const headers = rows[0].map(normHeader);
+  console.log('🧭 Encabezados detectados:', headers);
+
+  const buscar = (aliases) => {
+    for (const a of aliases) {
+      const i = headers.indexOf(a);
+      if (i >= 0) return i;
+    }
+    return -1;
+  };
 
   const idx = {
-    id:          headers.indexOf('id'),
-    funcionario: headers.indexOf('funcionario'),
-    tarea:       headers.indexOf('tarea'),
-    descripcion: headers.indexOf('descripcion'),
-    fecha:       headers.indexOf('fecha'),
-    hora:        headers.indexOf('hora')
+    id:          buscar(['id']),
+    funcionario: buscar(['funcionario']),
+    tarea:       buscar(['tarea']),
+    // 👇 Acepta descripcion, descripción, detalle, description
+    descripcion: buscar(['descripcion','descripción','descripc','detalle','description']),
+    fecha:       buscar(['fecha']),
+    hora:        buscar(['hora'])
   };
+
+  const requeridas = ['funcionario', 'tarea', 'fecha', 'hora'];
+  const faltantes = requeridas.filter(k => idx[k] < 0);
+  if (faltantes.length) {
+    return {
+      ok: false,
+      motivo: `Faltan columnas obligatorias: ${faltantes.join(', ')}.`,
+      headers
+    };
+  }
 
   TAREAS = rows.slice(1).map(r => {
     const fecha = parseFecha(r[idx.fecha]);
     if (!fecha) return null;
     return {
-      id:          idx.id          >= 0 ? String(r[idx.id] || '').trim()          : '',
-      funcionario: idx.funcionario >= 0 ? String(r[idx.funcionario] || '').trim() : '',
-      tarea:       idx.tarea       >= 0 ? String(r[idx.tarea] || '').trim()       : '',
+      id:          idx.id >= 0          ? String(r[idx.id] || '').trim()          : '',
+      funcionario: String(r[idx.funcionario] || '').trim(),
+      tarea:       String(r[idx.tarea] || '').trim(),
       descripcion: idx.descripcion >= 0 ? String(r[idx.descripcion] || '').trim() : '',
       fecha,
       hora: normalizarHora(r[idx.hora])
     };
   }).filter(Boolean);
+
+  return { ok: true, total: TAREAS.length };
 }
 
 /* ============================================================
@@ -156,7 +181,8 @@ function etiquetaPeriodo() {
     const d = DIA_SELECCIONADO;
     return `${DIAS_LARGO[d.getDay()]} ${d.getDate()} de ${MESES_LARGO[d.getMonth()]} de ${d.getFullYear()}`;
   }
-  return `${MESES_LARGO[FECHA_REF.getMonth()][0].toUpperCase() + MESES_LARGO[FECHA_REF.getMonth()].slice(1)} ${FECHA_REF.getFullYear()}`;
+  const m = MESES_LARGO[FECHA_REF.getMonth()];
+  return `${m[0].toUpperCase() + m.slice(1)} ${FECHA_REF.getFullYear()}`;
 }
 
 /* ============================================================
@@ -284,11 +310,11 @@ function renderMes() {
   const primerDia = new Date(FECHA_REF.getFullYear(), FECHA_REF.getMonth(), 1);
   const ultimoDia = new Date(FECHA_REF.getFullYear(), FECHA_REF.getMonth() + 1, 0);
   const inicio = lunesDe(primerDia);
-  const offsetFin = (ultimoDia.getDay() + 6) % 7; // 0=Lun ... 5=Sáb
+  const offsetFin = (ultimoDia.getDay() + 6) % 7;
   const fin = addDias(ultimoDia, 5 - offsetFin);
 
   for (let d = new Date(inicio); d <= fin; d = addDias(d, 1)) {
-    if (d.getDay() === 0) continue; // saltar domingos
+    if (d.getDay() === 0) continue;
 
     const tareas = tareasDe(d);
     const lleno = esDiaLleno(tareas);
@@ -324,24 +350,20 @@ function render() {
   $('#titulo').textContent = `${CONFIG.TITULO_PREFIX} ${FUNCIONARIO_ACTUAL || ''}`.trim();
   $('#etiqueta-periodo').textContent = etiquetaPeriodo();
 
-  // Panel calendario
   if (VISTA === 'semana') renderSemana();
   else if (VISTA === 'dia') renderDia();
   else renderMes();
 
-  // Panel agenda (siempre muestra el día seleccionado)
   $('#titulo-agenda').textContent = mismoDia(DIA_SELECCIONADO, new Date()) ? 'Agenda de hoy' : 'Agenda del día';
   $('#pill-fecha').textContent = fmtCorto(DIA_SELECCIONADO);
   $('#agenda').innerHTML = htmlAgenda(DIA_SELECCIONADO);
 
-  // Panel título según vista
   $('#titulo-panel').textContent =
     VISTA === 'semana' ? 'Calendario semanal' :
-    VISTA === 'dia'    ? 'Detalle del día'   : 'Vista mensual';
+    VISTA === 'dia'    ? 'Detalle del día'    : 'Vista mensual';
 
-  // Footer
   const total = TAREAS.filter(t => !FUNCIONARIO_ACTUAL || t.funcionario === FUNCIONARIO_ACTUAL).length;
-  $('#footer-info').textContent = `${total} actividades registradas · Datos desde Google Sheets`;
+  $('#footer-info').textContent = `${total} actividades cargadas desde Google Sheets`;
 }
 
 /* ============================================================
@@ -395,15 +417,13 @@ function bindUI() {
           DIA_SELECCIONADO = addDias(DIA_SELECCIONADO, delta);
           FECHA_REF = new Date(DIA_SELECCIONADO);
         } else {
-          const m = FECHA_REF.getMonth() + delta;
-          FECHA_REF = new Date(FECHA_REF.getFullYear(), m, 1);
+          FECHA_REF = new Date(FECHA_REF.getFullYear(), FECHA_REF.getMonth() + delta, 1);
         }
       }
       render();
     });
   });
 
-  // Navegación con teclado
   document.addEventListener('keydown', e => {
     if (e.target.matches('input, select, textarea')) return;
     if (e.key === 'ArrowLeft')  document.querySelector('[data-accion="prev"]').click();
@@ -413,18 +433,64 @@ function bindUI() {
 }
 
 /* ============================================================
+   Carga con timeout y mensajes de error visibles
+   ============================================================ */
+async function fetchConTimeout(url, ms) {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), ms);
+  try { return await fetch(url, { signal: ctrl.signal, cache: 'no-store' }); }
+  finally { clearTimeout(id); }
+}
+
+function mostrarError(titulo, detalleHtml) {
+  $('#estado').innerHTML = `
+    <div>
+      <p class="error">${escapeHtml(titulo)}</p>
+      <div class="detalle">${detalleHtml}</div>
+    </div>`;
+}
+
+/* ============================================================
    Bootstrap
    ============================================================ */
 async function init() {
+  // Permite pasar ?csv=... y ?funcionario=... por URL
   const params = new URLSearchParams(location.search);
   const urlCSV = params.get('csv') || CONFIG.CSV_URL;
 
+  if (!urlCSV || urlCSV.includes('TU_ID_AQUI') || urlCSV.includes('TU_GID_DE_MASTER')) {
+    mostrarError('Falta configurar la URL del CSV', `
+      Abre <code>config.js</code> y pega en <code>CSV_URL</code> la URL publicada
+      de tu hoja <strong>master</strong> (debe terminar en <code>&output=csv</code>).
+    `);
+    return;
+  }
+
   try {
-    const res = await fetch(urlCSV, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const res = await fetchConTimeout(urlCSV, CONFIG.TIMEOUT_MS);
+    if (!res.ok) throw new Error(`El servidor respondió HTTP ${res.status}`);
     const texto = await res.text();
 
-    cargarTareas(texto);
+    console.log('📄 Primeros 300 caracteres del CSV:\n', texto.slice(0, 300));
+
+    if (texto.trim().startsWith('<')) {
+      throw new Error('Se recibió HTML en lugar de CSV. Suele indicar que el gid no corresponde a la hoja "master" o que la publicación está desactivada.');
+    }
+
+    const resultado = cargarTareas(texto);
+    if (!resultado.ok) {
+      const heads = resultado.headers
+        ? `<p>Encabezados detectados:</p><pre>${escapeHtml(resultado.headers.join(' | '))}</pre>`
+        : '';
+      mostrarError('No se pudo interpretar el CSV', `<p>${escapeHtml(resultado.motivo)}</p>${heads}`);
+      return;
+    }
+    if (!resultado.total) {
+      mostrarError('El CSV no tiene filas válidas', `
+        Se leyó el encabezado pero no hay filas con fecha válida (dd-mm-aaaa).
+      `);
+      return;
+    }
 
     FUNCIONARIOS = [...new Set(TAREAS.map(t => t.funcionario).filter(Boolean))].sort();
     FUNCIONARIO_ACTUAL = params.get('funcionario') || FUNCIONARIOS[0] || '';
@@ -435,12 +501,22 @@ async function init() {
 
     $('#estado').hidden = true;
     $('#dashboard').hidden = false;
+
   } catch (err) {
     console.error(err);
-    $('#estado').innerHTML = `
-      <p class="error">No se pudieron cargar los datos.</p>
-      <p><small>${escapeHtml(err.message)}</small></p>
-      <p><small>Verifica que el CSV esté publicado y que la URL sea correcta.</small></p>`;
+    const esCORS = /Failed to fetch|NetworkError|load failed|abort/i.test(err.message);
+    mostrarError('No se pudieron cargar los datos', `
+      <p><strong>Error:</strong> ${escapeHtml(err.message)}</p>
+      ${esCORS ? `
+        <p>Causas típicas:</p>
+        <ul>
+          <li>El visor online bloquea peticiones externas (prueba en <em>StackBlitz</em> o <em>CodeSandbox</em>).</li>
+          <li>La hoja no está realmente publicada en la web.</li>
+          <li>La URL no termina en <code>&output=csv</code>.</li>
+          <li>El <code>gid</code> no es el de la pestaña <strong>master</strong>.</li>
+        </ul>` : ''}
+      <p>Abre la consola del navegador (F12) para más detalles.</p>
+    `);
   }
 }
 
