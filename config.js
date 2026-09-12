@@ -5,7 +5,7 @@ const CONFIG = {
   // ⬇️ PEGA AQUÍ TU URL PUBLICADA DE GOOGLE SHEETS ⬇️
   // Archivo → Compartir → Publicar en la web → pestaña "master" → CSV
   // Debe terminar en &output=csv
-  CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR97GQAnT1XyTGfhB2gFpjCZRIQNjXmlpPui9JkjBH7VuVMaKIp-GHKM1gDu3snMJ_ybFnkLc5MBxl8/pubhtml?gid=1088210344&single=true&output=csv',
+  CSV_URL: 'https://corsproxy.io/?https://docs.google.com/spreadsheets/d/e/2PACX-1vR97GQAnT1XyTGfhB2gFpjCZRIQNjXmlpPui9JkjBH7VuVMaKIp-GHKM1gDu3snMJ_ybFnkLc5MBxl8/pubhtml?gid=1088210344&single=true&output=csv',
 
   // Título del dashboard: "Dashboard de {funcionario}"
   TITULO_PREFIX: 'Dashboard de',
