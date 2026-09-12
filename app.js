@@ -113,7 +113,7 @@ function cargarTareas(textoCSV) {
     id:          buscar(['id']),
     funcionario: buscar(['funcionario']),
     tarea:       buscar(['tarea']),
-    // 👇 Acepta descripcion, descripción, detalle, description
+    // 👇 Acepta descripcion (sin tilde), descripción, detalle, description
     descripcion: buscar(['descripcion','descripción','descripc','detalle','description']),
     fecha:       buscar(['fecha']),
     hora:        buscar(['hora'])
@@ -443,7 +443,10 @@ async function fetchConTimeout(url, ms) {
 }
 
 function mostrarError(titulo, detalleHtml) {
-  $('#estado').innerHTML = `
+  const estado = $('#estado');
+  estado.hidden = false;
+  estado.style.display = 'grid';
+  estado.innerHTML = `
     <div>
       <p class="error">${escapeHtml(titulo)}</p>
       <div class="detalle">${detalleHtml}</div>
@@ -461,7 +464,7 @@ async function init() {
   if (!urlCSV || urlCSV.includes('TU_ID_AQUI') || urlCSV.includes('TU_GID_DE_MASTER')) {
     mostrarError('Falta configurar la URL del CSV', `
       Abre <code>config.js</code> y pega en <code>CSV_URL</code> la URL publicada
-      de tu hoja <strong>master</strong> (debe terminar en <code>&output=csv</code>).
+      de tu hoja (debe terminar en <code>&output=csv</code>).
     `);
     return;
   }
@@ -474,7 +477,7 @@ async function init() {
     console.log('📄 Primeros 300 caracteres del CSV:\n', texto.slice(0, 300));
 
     if (texto.trim().startsWith('<')) {
-      throw new Error('Se recibió HTML en lugar de CSV. Suele indicar que el gid no corresponde a la hoja "master" o que la publicación está desactivada.');
+      throw new Error('Se recibió HTML en lugar de CSV. Suele indicar que el gid no corresponde a la hoja o que la publicación está desactivada.');
     }
 
     const resultado = cargarTareas(texto);
@@ -499,8 +502,10 @@ async function init() {
     bindUI();
     render();
 
-    $('#estado').hidden = true;
+    // 👇 FIX: ocultar loader y mostrar dashboard (a prueba de [hidden] + display:grid)
+    $('#estado').style.display = 'none';
     $('#dashboard').hidden = false;
+    $('#dashboard').style.display = 'block';
 
   } catch (err) {
     console.error(err);
@@ -510,10 +515,9 @@ async function init() {
       ${esCORS ? `
         <p>Causas típicas:</p>
         <ul>
-          <li>El visor online bloquea peticiones externas (prueba en <em>StackBlitz</em> o <em>CodeSandbox</em>).</li>
-          <li>La hoja no está realmente publicada en la web.</li>
+          <li>El proxy cors.sh expiró o alcanzó su límite de peticiones.</li>
+          <li>La hoja no está publicada realmente como CSV.</li>
           <li>La URL no termina en <code>&output=csv</code>.</li>
-          <li>El <code>gid</code> no es el de la pestaña <strong>master</strong>.</li>
         </ul>` : ''}
       <p>Abre la consola del navegador (F12) para más detalles.</p>
     `);
