@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard de actividades</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="estado" class="estado">
+    <div class="spinner"></div>
+    <p>Cargando actividades…</p>
+  </div>
+
+  <div id="dashboard" hidden>
+    <header class="topbar">
+      <div class="marca">
+        <div class="logo">📊</div>
+        <div>
+          <h1 id="titulo">Dashboard</h1>
+          <p class="subtitulo" id="subtitulo">Actividades diarias</p>
+        </div>
+      </div>
+
+      <label class="selector" id="wrap-funcionario" hidden>
+        <span>Funcionario</span>
+        <select id="sel-funcionario"></select>
+      </label>
+    </header>
+
+    <nav class="toolbar">
+      <div class="nav-fechas">
+        <button class="btn-icono" data-accion="prev" aria-label="Anterior">‹</button>
+        <button class="btn-secundario" data-accion="hoy">Hoy</button>
+        <button class="btn-icono" data-accion="next" aria-label="Siguiente">›</button>
+      </div>
+
+      <p class="etiqueta-periodo" id="etiqueta-periodo"></p>
+
+      <div class="vistas" role="tablist">
+        <button data-vista="semana" class="activo">Semana</button>
+        <button data-vista="dia">Día</button>
+        <button data-vista="mes">Mes</button>
+      </div>
+    </nav>
+
+    <main class="layout">
+      <section class="panel-calendario">
+        <div class="panel-head">
+          <h2 id="titulo-panel">Calendario</h2>
+          <div class="leyenda">
+            <span class="leyenda-item"><i class="punto azul"></i>Con tareas</span>
+            <span class="leyenda-item"><i class="punto rojo"></i>Sin disponibilidad</span>
+          </div>
+        </div>
+        <div id="calendario" class="calendario semana"></div>
+      </section>
+
+      <aside class="panel-agenda">
+        <div class="panel-head">
+          <h2 id="titulo-agenda">Agenda</h2>
+          <span class="pill" id="pill-fecha"></span>
+        </div>
+        <div id="agenda" class="agenda"></div>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      <span id="footer-info"></span>
+    </footer>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
