@@ -2,9 +2,8 @@
    Configuración del Dashboard
    ============================================================ */
 const CONFIG = {
-  // ⬇️ PEGA AQUÍ TU URL PUBLICADA DE GOOGLE SHEETS ⬇️
-  // Archivo → Compartir → Publicar en la web → pestaña "master" → CSV
-  // Debe terminar en &output=csv
+  // ⬇️ URL publicada de Google Sheets, ya con el proxy cors.sh delante
+  // Formato: https://proxy.cors.sh/{URL_ORIGINAL_DE_GOOGLE_SHEETS}
   CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR97GQAnT1XyTGfhB2gFpjCZRIQNjXmlpPui9JkjBH7VuVMaKIp-GHKM1gDu3snMJ_ybFnkLc5MBxl8/pub?gid=1088210344&single=true&output=csv',
 
   // Título del dashboard: "Dashboard de {funcionario}"
