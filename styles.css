@@ -25,6 +25,9 @@
 
 * { box-sizing: border-box; }
 
+/* 👇 FIX: fuerza que [hidden] gane sobre display:grid/flex */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   padding: 0;
