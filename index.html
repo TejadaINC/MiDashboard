@@ -1,638 +1,79 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Dashboard de actividades</title>
-<style>
-  :root{
-    --azul-900:#0b2a4a; --azul-700:#12558a; --azul-500:#2f8fd6; --azul-300:#8ec9ef;
-    --azul-100:#e3f2fb; --verde-700:#0f7a5a; --verde-500:#22b07d; --verde-300:#86e0b8;
-    --verde-100:#e2f8ee; --rojo-600:#d93a3f; --rojo-500:#e5484d; --rojo-100:#fdecec;
-    --texto:#0e2233; --texto-suave:#5f7383; --fondo:#f2f8fc; --blanco:#fff;
-    --borde:#dbe8f1; --sombra:0 6px 20px rgba(11,42,74,.07); --radio:14px;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;padding:0;background:var(--fondo);color:var(--texto);
-    font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
-  button{font-family:inherit;cursor:pointer}
-
-  .estado{min-height:100vh;display:grid;place-items:center;gap:12px;color:var(--texto-suave);text-align:center;padding:24px}
-  .estado > div{max-width:640px}
-  .spinner{width:42px;height:42px;border:4px solid var(--azul-100);border-top-color:var(--azul-500);border-radius:50%;animation:girar .8s linear infinite;margin:0 auto}
-  @keyframes girar{to{transform:rotate(360deg)}}
-  .error{color:var(--rojo-600);font-weight:700;font-size:1.05rem;margin:0 0 6px}
-  .detalle{font-size:.85rem;color:var(--texto-suave);line-height:1.55;margin-top:8px;text-align:left}
-  .detalle code{background:var(--azul-100);padding:2px 6px;border-radius:6px;font-size:.8rem;color:var(--azul-700)}
-  .detalle ul{margin:6px 0 6px 20px;padding:0}
-  .detalle pre{background:#0b2a4a;color:#d6ecff;padding:10px;border-radius:8px;font-size:.75rem;overflow:auto;max-height:160px;text-align:left}
-
-  #dashboard{max-width:1400px;margin:0 auto;padding:20px clamp(12px,3vw,32px) 40px}
-  .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
-  .marca{display:flex;align-items:center;gap:14px}
-  .logo{width:48px;height:48px;display:grid;place-items:center;font-size:22px;border-radius:14px;
-    background:linear-gradient(135deg,var(--azul-500),var(--verde-500));color:#fff;box-shadow:var(--sombra)}
-  h1{margin:0;font-size:clamp(1.2rem,2.4vw,1.7rem);color:var(--azul-900);letter-spacing:-.5px}
-  .subtitulo{margin:2px 0 0;color:var(--texto-suave);font-size:.85rem}
-  .selector{display:flex;align-items:center;gap:10px;background:var(--blanco);border:1px solid var(--borde);
-    padding:8px 12px;border-radius:12px;box-shadow:var(--sombra);font-size:.85rem;color:var(--texto-suave)}
-  .selector select{border:none;background:transparent;font-weight:600;color:var(--azul-900);font-size:.9rem;outline:none;cursor:pointer}
-
-  .toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-    background:var(--blanco);border:1px solid var(--borde);border-radius:var(--radio);padding:10px 14px;
-    margin-bottom:20px;box-shadow:var(--sombra)}
-  .nav-fechas{display:flex;gap:6px}
-  .btn-icono,.btn-secundario,.vistas button{border:1px solid var(--borde);background:var(--blanco);color:var(--azul-700);
-    border-radius:10px;padding:8px 12px;font-weight:600;font-size:.85rem;transition:.18s}
-  .btn-icono{font-size:1.1rem;line-height:1;padding:6px 12px}
-  .btn-icono:hover,.btn-secundario:hover,.vistas button:hover{background:var(--azul-100);border-color:var(--azul-300)}
-  .etiqueta-periodo{margin:0;font-weight:600;color:var(--azul-900);font-size:.95rem;text-align:center;flex:1 1 auto}
-  .vistas{display:flex;gap:6px;background:var(--azul-100);padding:4px;border-radius:12px}
-  .vistas button{border:none;background:transparent;padding:7px 14px;color:var(--azul-700)}
-  .vistas button.activo{background:linear-gradient(135deg,var(--azul-500),var(--verde-500));color:#fff;
-    box-shadow:0 3px 10px rgba(47,143,214,.35)}
-
-  .layout{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(300px,1fr);gap:20px;align-items:start}
-  @media (max-width:960px){.layout{grid-template-columns:1fr}}
-
-  .panel-calendario,.panel-agenda{background:var(--blanco);border:1px solid var(--borde);border-radius:var(--radio);
-    padding:16px;box-shadow:var(--sombra)}
-  .panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
-  .panel-head h2{margin:0;font-size:1rem;color:var(--azul-900)}
-  .leyenda{display:flex;gap:14px;font-size:.78rem;color:var(--texto-suave)}
-  .leyenda-item{display:inline-flex;align-items:center;gap:6px}
-  .punto{width:10px;height:10px;border-radius:3px;display:inline-block}
-  .punto.azul{background:var(--azul-500)}
-  .punto.rojo{background:var(--rojo-500)}
-  .pill{font-size:.75rem;background:var(--verde-100);color:var(--verde-700);padding:4px 10px;border-radius:999px;font-weight:700}
-
-  .calendario.semana{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
-  @media (max-width:1200px){.calendario.semana{grid-template-columns:repeat(3,minmax(0,1fr))}}
-  @media (max-width:680px){.calendario.semana{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  @media (max-width:420px){.calendario.semana{grid-template-columns:1fr}}
-
-  .dia-card{border:1px solid var(--borde);border-radius:12px;padding:10px;
-    background:linear-gradient(180deg,#fff,#fafdff);cursor:pointer;transition:.2s;
-    display:flex;flex-direction:column;gap:8px;min-height:180px;position:relative;overflow:hidden}
-  .dia-card:hover{transform:translateY(-2px);border-color:var(--azul-300);box-shadow:0 8px 20px rgba(47,143,214,.15)}
-  .dia-card::before{content:'';position:absolute;inset:0 auto 0 0;width:4px;
-    background:linear-gradient(180deg,var(--azul-500),var(--verde-500))}
-  .dia-card.hoy{border-color:var(--verde-500);box-shadow:0 0 0 2px var(--verde-100)}
-  .dia-card.lleno{border-color:var(--rojo-500);background:linear-gradient(180deg,#fff,var(--rojo-100))}
-  .dia-card.lleno::before{background:var(--rojo-500)}
-  .dia-head{display:flex;justify-content:space-between;align-items:baseline;padding-left:6px}
-  .dia-nombre{font-weight:700;color:var(--azul-900);font-size:.88rem}
-  .dia-fecha{font-size:.75rem;color:var(--texto-suave)}
-  .badge-lleno{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#fff;
-    background:var(--rojo-500);padding:3px 8px;border-radius:999px;align-self:flex-start;margin-left:6px}
-  .tareas-mini{list-style:none;margin:0;padding:0 0 0 6px;display:flex;flex-direction:column;gap:5px;overflow:hidden}
-  .tareas-mini li{display:flex;gap:6px;font-size:.74rem;border-left:2px solid var(--verde-300);padding-left:6px}
-  .tareas-mini li.vacio{color:var(--texto-suave);font-style:italic;border-color:transparent}
-  .hora-mini{font-weight:700;color:var(--azul-700);font-variant-numeric:tabular-nums}
-  .tarea-mini{display:flex;flex-direction:column;line-height:1.25}
-  .tarea-mini strong{color:var(--texto);font-weight:600}
-  .tarea-mini em{color:var(--texto-suave);font-style:normal;font-size:.68rem}
-  .dia-foot{margin-top:auto;font-size:.68rem;color:var(--texto-suave);padding-left:6px;
-    border-top:1px dashed var(--borde);padding-top:6px}
-
-  .calendario.dia{display:block}
-  .dia-card.grande{min-height:auto;cursor:default;padding:18px}
-  .dia-card.grande:hover{transform:none;box-shadow:none}
-  .dia-card.grande .dia-nombre{font-size:1.1rem}
-  .dia-card.grande .dia-fecha{font-size:.85rem}
-
-  .calendario.mes{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
-  .mes-head{text-align:center;font-size:.72rem;font-weight:700;color:var(--azul-700);
-    text-transform:uppercase;letter-spacing:.5px;padding:4px 0}
-  .mes-celda{border:1px solid var(--borde);background:var(--blanco);border-radius:10px;padding:6px;
-    min-height:78px;display:flex;flex-direction:column;gap:3px;text-align:left;transition:.18s;font-family:inherit}
-  .mes-celda:hover{border-color:var(--azul-300);background:var(--azul-100)}
-  .mes-celda.fuera{opacity:.38}
-  .mes-celda.hoy{box-shadow:inset 0 0 0 2px var(--verde-500)}
-  .mes-celda.lleno{background:var(--rojo-100);border-color:var(--rojo-500)}
-  .mes-num{font-weight:700;color:var(--azul-900);font-size:.85rem}
-  .mes-info{font-size:.65rem;color:var(--texto-suave)}
-  .mes-full{font-size:.6rem;font-weight:700;color:#fff;background:var(--rojo-500);
-    padding:1px 6px;border-radius:999px;align-self:flex-start;text-transform:uppercase}
-  @media (max-width:560px){.calendario.mes{gap:4px}.mes-celda{min-height:62px;padding:4px}}
-
-  .agenda{display:flex;flex-direction:column;gap:4px;max-height:640px;overflow-y:auto;padding-right:4px}
-  .agenda::-webkit-scrollbar{width:6px}
-  .agenda::-webkit-scrollbar-thumb{background:var(--azul-300);border-radius:3px}
-  .slot{display:grid;grid-template-columns:56px 1fr;gap:10px;min-height:44px;
-    border-bottom:1px dashed var(--borde);padding:6px 0}
-  .slot-hora{font-size:.72rem;font-weight:700;color:var(--azul-700);font-variant-numeric:tabular-nums;padding-top:4px}
-  .slot-contenido{display:flex;flex-direction:column;gap:4px}
-  .slot-libre{font-size:.74rem;color:#b6c4d1;font-style:italic}
-  .slot-tarea{background:linear-gradient(135deg,var(--azul-100),var(--verde-100));
-    border-left:3px solid var(--verde-500);border-radius:8px;padding:6px 10px;font-size:.78rem;
-    display:flex;flex-direction:column}
-  .slot-tarea strong{color:var(--azul-900)}
-  .slot-tarea span{color:var(--texto-suave);font-size:.7rem}
-
-  .footer{margin-top:24px;text-align:center;font-size:.75rem;color:var(--texto-suave)}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard de actividades</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
-<div id="estado" class="estado">
-  <div>
-    <div class="spinner"></div>
-    <p>Cargando actividades…</p>
-  </div>
-</div>
-
-<div id="dashboard" hidden>
-  <header class="topbar">
-    <div class="marca">
-      <div class="logo">📊</div>
-      <div>
-        <h1 id="titulo">Dashboard</h1>
-        <p class="subtitulo" id="subtitulo">Actividades diarias</p>
-      </div>
-    </div>
-    <label class="selector" id="wrap-funcionario" hidden>
-      <span>Funcionario</span>
-      <select id="sel-funcionario"></select>
-    </label>
-  </header>
-
-  <nav class="toolbar">
-    <div class="nav-fechas">
-      <button class="btn-icono" data-accion="prev" aria-label="Anterior">‹</button>
-      <button class="btn-secundario" data-accion="hoy">Hoy</button>
-      <button class="btn-icono" data-accion="next" aria-label="Siguiente">›</button>
-    </div>
-    <p class="etiqueta-periodo" id="etiqueta-periodo"></p>
-    <div class="vistas" role="tablist">
-      <button data-vista="semana" class="activo">Semana</button>
-      <button data-vista="dia">Día</button>
-      <button data-vista="mes">Mes</button>
-    </div>
-  </nav>
-
-  <main class="layout">
-    <section class="panel-calendario">
-      <div class="panel-head">
-        <h2 id="titulo-panel">Calendario</h2>
-        <div class="leyenda">
-          <span class="leyenda-item"><i class="punto azul"></i>Con tareas</span>
-          <span class="leyenda-item"><i class="punto rojo"></i>Sin disponibilidad</span>
-        </div>
-      </div>
-      <div id="calendario" class="calendario semana"></div>
-    </section>
-
-    <aside class="panel-agenda">
-      <div class="panel-head">
-        <h2 id="titulo-agenda">Agenda</h2>
-        <span class="pill" id="pill-fecha"></span>
-      </div>
-      <div id="agenda" class="agenda"></div>
-    </aside>
-  </main>
-
-  <footer class="footer">
-    <span id="footer-info"></span>
-  </footer>
-</div>
-
-<script>
-/* ============================================================
-   CONFIGURACIÓN
-   ============================================================ */
-const CONFIG = {
-  // ⬇️ PEGA AQUÍ TU URL PUBLICADA (termina en &output=csv) ⬇️
-  CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR97GQAnT1XyTGfhB2gFpjCZRIQNjXmlpPui9JkjBH7VuVMaKIp-GHKM1gDu3snMJ_ybFnkLc5MBxl8/pubhtml?gid=0&single=true&output=csv',
-
-  TITULO_PREFIX: 'Dashboard de',
-  HORA_INICIO: 7,
-  HORA_FIN: 18,
-  DURACION_TAREA_HORAS: 1,
-  UMBRAL_DIA_LLENO: 8,
-  TIMEOUT_MS: 10000
-};
-
-/* ============================================================
-   Utilidades
-   ============================================================ */
-const $ = (s, c=document) => c.querySelector(s);
-const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const mismoDia = (a,b) => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
-const addDias = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
-function lunesDe(date){
-  const d = new Date(date); d.setHours(0,0,0,0);
-  const day = d.getDay();
-  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
-  return d;
-}
-function fmtCorto(d){ return `${d.getDate()} ${['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()]}`; }
-function normalizarHora(v){
-  const m = String(v ?? '').trim().match(/^(\d{1,2}):?(\d{2})?/);
-  if (!m) return '00:00';
-  return String(m[1]).padStart(2,'0') + ':' + (m[2] || '00');
-}
-function horaNum(hhmm){ const m = String(hhmm).match(/^(\d{1,2})/); return m ? Number(m[1]) : null; }
-function parseFecha(str){
-  if (!str) return null;
-  const m = String(str).trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-  if (!m) return null;
-  let [,d,mo,y] = m; y = Number(y); if (y < 100) y += 2000;
-  const date = new Date(y, Number(mo)-1, Number(d)); date.setHours(0,0,0,0);
-  return isNaN(date.getTime()) ? null : date;
-}
-function parseCSV(text){
-  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-  const rows = []; let row = [], field = '', inQ = false;
-  for (let i=0;i<text.length;i++){
-    const c = text[i];
-    if (inQ){
-      if (c === '"'){ if (text[i+1] === '"'){ field += '"'; i++; } else inQ = false; }
-      else field += c;
-    } else {
-      if (c === '"') inQ = true;
-      else if (c === ','){ row.push(field); field = ''; }
-      else if (c === '\n'){ row.push(field); rows.push(row); row = []; field = ''; }
-      else if (c !== '\r') field += c;
-    }
-  }
-  if (field !== '' || row.length){ row.push(field); rows.push(row); }
-  return rows.filter(r => r.some(c => String(c).trim() !== ''));
-}
-/* Normaliza encabezados: minúsculas, sin acentos, sin espacios extra */
-const normHeader = s => String(s).trim().toLowerCase()
-  .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-
-const MESES_LARGO = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-const DIAS_CORTO  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-const DIAS_LARGO  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-
-/* ============================================================
-   Estado
-   ============================================================ */
-let TAREAS = [];
-let FUNCIONARIOS = [];
-let FUNCIONARIO_ACTUAL = '';
-let VISTA = 'semana';
-let FECHA_REF = new Date();
-let DIA_SELECCIONADO = new Date();
-
-/* ============================================================
-   Carga de tareas
-   ============================================================ */
-function cargarTareas(textoCSV){
-  const rows = parseCSV(textoCSV);
-  if (!rows.length) return { ok:false, motivo:'El CSV está vacío.' };
-
-  const headers = rows[0].map(normHeader);
-  console.log('🧭 Encabezados detectados:', headers);
-
-  // Búsqueda flexible: acepta "descripcion" (sin tilde) y variantes
-  const buscar = (aliases) => {
-    for (const a of aliases){
-      const i = headers.indexOf(a);
-      if (i >= 0) return i;
-    }
-    return -1;
-  };
-
-  const idx = {
-    id:          buscar(['id']),
-    funcionario: buscar(['funcionario']),
-    tarea:       buscar(['tarea']),
-    // 👇 Acepta descripcion, descripción, descripc, detalle, description
-    descripcion: buscar(['descripcion','descripción','descripc','detalle','description']),
-    fecha:       buscar(['fecha']),
-    hora:        buscar(['hora'])
-  };
-
-  // La descripción puede estar vacía en algunas filas: solo es obligatoria la columna
-  const requeridas = ['funcionario','tarea','fecha','hora'];
-  const faltantes = requeridas.filter(k => idx[k] < 0);
-  if (faltantes.length){
-    return {
-      ok: false,
-      motivo: `Faltan columnas obligatorias: ${faltantes.join(', ')}.`,
-      headers
-    };
-  }
-
-  TAREAS = rows.slice(1).map(r => {
-    const fecha = parseFecha(r[idx.fecha]);
-    if (!fecha) return null;
-    return {
-      id:          idx.id >= 0          ? String(r[idx.id]||'').trim()          : '',
-      funcionario: String(r[idx.funcionario]||'').trim(),
-      tarea:       String(r[idx.tarea]||'').trim(),
-      descripcion: idx.descripcion >= 0 ? String(r[idx.descripcion]||'').trim() : '',
-      fecha,
-      hora: normalizarHora(r[idx.hora])
-    };
-  }).filter(Boolean);
-
-  return { ok:true, total: TAREAS.length };
-}
-
-/* ============================================================
-   Filtros / cálculos
-   ============================================================ */
-function tareasDe(dia){
-  return TAREAS
-    .filter(t => (!FUNCIONARIO_ACTUAL || t.funcionario === FUNCIONARIO_ACTUAL) && mismoDia(t.fecha, dia))
-    .sort((a,b) => a.hora.localeCompare(b.hora));
-}
-function horasOcupadas(tareas){
-  const set = new Set();
-  tareas.forEach(t => {
-    const h = horaNum(t.hora); if (h === null) return;
-    for (let i = 0; i < CONFIG.DURACION_TAREA_HORAS; i++) set.add(h+i);
-  });
-  return set.size;
-}
-const esDiaLleno = tareas => horasOcupadas(tareas) >= CONFIG.UMBRAL_DIA_LLENO;
-
-/* ============================================================
-   Etiquetas
-   ============================================================ */
-function etiquetaPeriodo(){
-  if (VISTA === 'semana'){
-    const l = lunesDe(FECHA_REF);
-    const s = addDias(l, 5);
-    if (l.getMonth() === s.getMonth())
-      return `Semana del ${l.getDate()} al ${s.getDate()} de ${MESES_LARGO[l.getMonth()]} de ${s.getFullYear()}`;
-    return `Semana del ${l.getDate()} ${MESES_LARGO[l.getMonth()].slice(0,3)} al ${s.getDate()} ${MESES_LARGO[s.getMonth()].slice(0,3)} de ${s.getFullYear()}`;
-  }
-  if (VISTA === 'dia'){
-    const d = DIA_SELECCIONADO;
-    return `${DIAS_LARGO[d.getDay()]} ${d.getDate()} de ${MESES_LARGO[d.getMonth()]} de ${d.getFullYear()}`;
-  }
-  const m = MESES_LARGO[FECHA_REF.getMonth()];
-  return `${m[0].toUpperCase()+m.slice(1)} ${FECHA_REF.getFullYear()}`;
-}
-
-/* ============================================================
-   Agenda por horas
-   ============================================================ */
-function htmlAgenda(dia){
-  const tareas = tareasDe(dia);
-  const porHora = new Map();
-  tareas.forEach(t => {
-    const h = horaNum(t.hora);
-    if (!porHora.has(h)) porHora.set(h, []);
-    porHora.get(h).push(t);
-  });
-  let html = '';
-  for (let h = CONFIG.HORA_INICIO; h <= CONFIG.HORA_FIN; h++){
-    const items = porHora.get(h) || [];
-    html += `
-      <div class="slot ${items.length ? 'ocupado' : ''}">
-        <div class="slot-hora">${String(h).padStart(2,'0')}:00</div>
-        <div class="slot-contenido">
-          ${items.length
-            ? items.map(t => `
-              <div class="slot-tarea">
-                <strong>${escapeHtml(t.tarea || 'Sin título')}</strong>
-                ${t.descripcion ? `<span>${escapeHtml(t.descripcion)}</span>` : ''}
-              </div>`).join('')
-            : '<span class="slot-libre">Libre</span>'}
-        </div>
-      </div>`;
-  }
-  return html;
-}
-
-/* ============================================================
-   Vistas
-   ============================================================ */
-function renderSemana(){
-  const cont = $('#calendario');
-  cont.className = 'calendario semana';
-  cont.innerHTML = '';
-  const lunes = lunesDe(FECHA_REF);
-  for (let i = 0; i < 6; i++){
-    const dia = addDias(lunes, i);
-    const tareas = tareasDe(dia);
-    const lleno = esDiaLleno(tareas);
-    const card = document.createElement('article');
-    card.className = 'dia-card' + (lleno ? ' lleno' : '') + (mismoDia(dia, new Date()) ? ' hoy' : '');
-    card.innerHTML = `
-      <header class="dia-head">
-        <span class="dia-nombre">${DIAS_CORTO[dia.getDay()]}</span>
-        <span class="dia-fecha">${fmtCorto(dia)}</span>
-      </header>
-      ${lleno ? '<div class="badge-lleno">Sin disponibilidad</div>' : ''}
-      <ul class="tareas-mini">
-        ${tareas.length
-          ? tareas.map(t => `
-            <li>
-              <span class="hora-mini">${t.hora}</span>
-              <span class="tarea-mini">
-                <strong>${escapeHtml(t.tarea || '—')}</strong>
-                ${t.descripcion ? `<em>${escapeHtml(t.descripcion)}</em>` : ''}
-              </span>
-            </li>`).join('')
-          : '<li class="vacio">Sin tareas</li>'}
-      </ul>
-      <footer class="dia-foot">${tareas.length} tarea${tareas.length===1?'':'s'} · ${horasOcupadas(tareas)} h</footer>`;
-    card.addEventListener('click', () => {
-      DIA_SELECCIONADO = dia; VISTA = 'dia';
-      actualizarBotonesVista(); render();
-    });
-    cont.appendChild(card);
-  }
-}
-function renderDia(){
-  const cont = $('#calendario');
-  cont.className = 'calendario dia';
-  const tareas = tareasDe(DIA_SELECCIONADO);
-  const lleno = esDiaLleno(tareas);
-  const d = DIA_SELECCIONADO;
-  cont.innerHTML = `
-    <article class="dia-card grande ${lleno ? 'lleno' : ''}">
-      <header class="dia-head">
-        <span class="dia-nombre">${DIAS_LARGO[d.getDay()]}</span>
-        <span class="dia-fecha">${d.getDate()} de ${MESES_LARGO[d.getMonth()]} de ${d.getFullYear()}</span>
-      </header>
-      ${lleno ? '<div class="badge-lleno">Sin disponibilidad</div>' : ''}
-      <div class="agenda">${htmlAgenda(d)}</div>
-    </article>`;
-}
-function renderMes(){
-  const cont = $('#calendario');
-  cont.className = 'calendario mes';
-  cont.innerHTML = '';
-  ['Lun','Mar','Mié','Jue','Vie','Sáb'].forEach(d => {
-    const h = document.createElement('div'); h.className = 'mes-head'; h.textContent = d;
-    cont.appendChild(h);
-  });
-  const primerDia = new Date(FECHA_REF.getFullYear(), FECHA_REF.getMonth(), 1);
-  const ultimoDia = new Date(FECHA_REF.getFullYear(), FECHA_REF.getMonth()+1, 0);
-  const inicio = lunesDe(primerDia);
-  const offsetFin = (ultimoDia.getDay() + 6) % 7;
-  const fin = addDias(ultimoDia, 5 - offsetFin);
-  for (let d = new Date(inicio); d <= fin; d = addDias(d, 1)){
-    if (d.getDay() === 0) continue;
-    const tareas = tareasDe(d);
-    const lleno = esDiaLleno(tareas);
-    const cell = document.createElement('button');
-    cell.type = 'button';
-    cell.className = 'mes-celda'
-      + (d.getMonth() !== FECHA_REF.getMonth() ? ' fuera' : '')
-      + (mismoDia(d, new Date()) ? ' hoy' : '')
-      + (lleno ? ' lleno' : '');
-    cell.innerHTML = `
-      <span class="mes-num">${d.getDate()}</span>
-      ${tareas.length ? `<span class="mes-info">${tareas.length} tarea${tareas.length===1?'':'s'}</span>` : ''}
-      ${lleno ? '<span class="mes-full">Full</span>' : ''}`;
-    cell.addEventListener('click', () => {
-      DIA_SELECCIONADO = d; VISTA = 'dia';
-      actualizarBotonesVista(); render();
-    });
-    cont.appendChild(cell);
-  }
-}
-function render(){
-  $('#titulo').textContent = `${CONFIG.TITULO_PREFIX} ${FUNCIONARIO_ACTUAL || ''}`.trim();
-  $('#etiqueta-periodo').textContent = etiquetaPeriodo();
-  if (VISTA === 'semana') renderSemana();
-  else if (VISTA === 'dia') renderDia();
-  else renderMes();
-  $('#titulo-agenda').textContent = mismoDia(DIA_SELECCIONADO, new Date()) ? 'Agenda de hoy' : 'Agenda del día';
-  $('#pill-fecha').textContent = fmtCorto(DIA_SELECCIONADO);
-  $('#agenda').innerHTML = htmlAgenda(DIA_SELECCIONADO);
-  $('#titulo-panel').textContent =
-    VISTA === 'semana' ? 'Calendario semanal' :
-    VISTA === 'dia'    ? 'Detalle del día'    : 'Vista mensual';
-  const total = TAREAS.filter(t => !FUNCIONARIO_ACTUAL || t.funcionario === FUNCIONARIO_ACTUAL).length;
-  $('#footer-info').textContent = `${total} actividades cargadas desde Google Sheets`;
-}
-
-/* ============================================================
-   Selector de funcionario
-   ============================================================ */
-function construirSelectorFuncionario(){
-  const wrap = $('#wrap-funcionario');
-  const sel = $('#sel-funcionario');
-  if (FUNCIONARIOS.length <= 1){ wrap.hidden = true; return; }
-  wrap.hidden = false;
-  sel.innerHTML = FUNCIONARIOS.map(f =>
-    `<option value="${escapeHtml(f)}" ${f===FUNCIONARIO_ACTUAL?'selected':''}>${escapeHtml(f)}</option>`
-  ).join('');
-  sel.addEventListener('change', e => { FUNCIONARIO_ACTUAL = e.target.value; render(); });
-}
-
-/* ============================================================
-   UI
-   ============================================================ */
-function actualizarBotonesVista(){
-  document.querySelectorAll('.vistas button').forEach(b => {
-    b.classList.toggle('activo', b.dataset.vista === VISTA);
-  });
-}
-function bindUI(){
-  document.querySelectorAll('.vistas button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      VISTA = btn.dataset.vista;
-      if (VISTA === 'dia') DIA_SELECCIONADO = new Date(FECHA_REF);
-      actualizarBotonesVista(); render();
-    });
-  });
-  document.querySelectorAll('[data-accion]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const accion = btn.dataset.accion;
-      if (accion === 'hoy'){ FECHA_REF = new Date(); DIA_SELECCIONADO = new Date(); }
-      else {
-        const delta = accion === 'next' ? 1 : -1;
-        if (VISTA === 'semana') FECHA_REF = addDias(FECHA_REF, 7*delta);
-        else if (VISTA === 'dia'){ DIA_SELECCIONADO = addDias(DIA_SELECCIONADO, delta); FECHA_REF = new Date(DIA_SELECCIONADO); }
-        else { FECHA_REF = new Date(FECHA_REF.getFullYear(), FECHA_REF.getMonth()+delta, 1); }
-      }
-      render();
-    });
-  });
-  document.addEventListener('keydown', e => {
-    if (e.target.matches('input, select, textarea')) return;
-    if (e.key === 'ArrowLeft')  document.querySelector('[data-accion="prev"]').click();
-    if (e.key === 'ArrowRight') document.querySelector('[data-accion="next"]').click();
-    if (e.key.toLowerCase() === 'h') document.querySelector('[data-accion="hoy"]').click();
-  });
-}
-
-/* ============================================================
-   Carga con timeout y errores visibles
-   ============================================================ */
-async function fetchConTimeout(url, ms){
-  const ctrl = new AbortController();
-  const id = setTimeout(() => ctrl.abort(), ms);
-  try { return await fetch(url, { signal: ctrl.signal, cache: 'no-store' }); }
-  finally { clearTimeout(id); }
-}
-function mostrarError(titulo, detalleHtml){
-  $('#estado').innerHTML = `
+  <div id="estado" class="estado">
     <div>
-      <p class="error">${escapeHtml(titulo)}</p>
-      <div class="detalle">${detalleHtml}</div>
-    </div>`;
-}
-async function init(){
-  if (!CONFIG.CSV_URL || CONFIG.CSV_URL.includes('TU_ID_AQUI') || CONFIG.CSV_URL.includes('TU_GID_DE_MASTER')){
-    mostrarError('Falta configurar la URL del CSV', `
-      Abre este HTML, busca <code>CONFIG.CSV_URL</code> y pega la URL publicada
-      de tu hoja <strong>master</strong> (debe terminar en <code>&output=csv</code>).
-    `);
-    return;
-  }
-  try {
-    const res = await fetchConTimeout(CONFIG.CSV_URL, CONFIG.TIMEOUT_MS);
-    if (!res.ok) throw new Error(`El servidor respondió HTTP ${res.status}`);
-    const texto = await res.text();
+      <div class="spinner"></div>
+      <p>Cargando actividades…</p>
+    </div>
+  </div>
 
-    console.log('📄 Primeros 300 caracteres del CSV:\n', texto.slice(0,300));
+  <div id="dashboard" hidden>
+    <header class="topbar">
+      <div class="marca">
+        <div class="logo">📊</div>
+        <div>
+          <h1 id="titulo">Dashboard</h1>
+          <p class="subtitulo" id="subtitulo">Actividades diarias</p>
+        </div>
+      </div>
 
-    if (texto.trim().startsWith('<')) {
-      throw new Error('Se recibió HTML en lugar de CSV. Casi siempre significa que el gid no corresponde a la hoja "master" o que la publicación está desactivada.');
-    }
+      <label class="selector" id="wrap-funcionario" hidden>
+        <span>Funcionario</span>
+        <select id="sel-funcionario"></select>
+      </label>
+    </header>
 
-    const resultado = cargarTareas(texto);
-    if (!resultado.ok){
-      const heads = resultado.headers ? `<p>Encabezados detectados:</p><pre>${escapeHtml(resultado.headers.join(' | '))}</pre>` : '';
-      mostrarError('No se pudo interpretar el CSV', `<p>${escapeHtml(resultado.motivo)}</p>${heads}`);
-      return;
-    }
-    if (!resultado.total){
-      mostrarError('El CSV no tiene filas de datos', `
-        Se leyó el encabezado pero no hay filas válidas. Verifica que la pestaña <strong>master</strong>
-        tenga datos con fecha en formato dd-mm-aaaa y hora HH:mm.
-      `);
-      return;
-    }
+    <nav class="toolbar">
+      <div class="nav-fechas">
+        <button class="btn-icono" data-accion="prev" aria-label="Anterior">‹</button>
+        <button class="btn-secundario" data-accion="hoy">Hoy</button>
+        <button class="btn-icono" data-accion="next" aria-label="Siguiente">›</button>
+      </div>
 
-    FUNCIONARIOS = [...new Set(TAREAS.map(t => t.funcionario).filter(Boolean))].sort();
-    FUNCIONARIO_ACTUAL = FUNCIONARIOS[0] || '';
-    construirSelectorFuncionario();
-    bindUI();
-    render();
-    $('#estado').hidden = true;
-    $('#dashboard').hidden = false;
+      <p class="etiqueta-periodo" id="etiqueta-periodo"></p>
 
-  } catch (err){
-    console.error(err);
-    const esCORS = /Failed to fetch|NetworkError|load failed|abort/i.test(err.message);
-    mostrarError('No se pudieron cargar los datos', `
-      <p><strong>Error:</strong> ${escapeHtml(err.message)}</p>
-      ${esCORS ? `
-        <p>Causas típicas:</p>
-        <ul>
-          <li>El visor online bloquea peticiones externas (prueba en <em>StackBlitz</em> o <em>CodeSandbox</em>).</li>
-          <li>La hoja no está realmente publicada en la web.</li>
-          <li>La URL no termina en <code>&output=csv</code>.</li>
-          <li>El <code>gid</code> no es el de la pestaña <strong>master</strong>.</li>
-        </ul>` : ''}
-      <p>Abre la consola del navegador (F12) para ver más detalles.</p>
-    `);
-  }
-}
-document.addEventListener('DOMContentLoaded', init);
-</script>
+      <div class="vistas" role="tablist">
+        <button data-vista="semana" class="activo">Semana</button>
+        <button data-vista="dia">Día</button>
+        <button data-vista="mes">Mes</button>
+      </div>
+    </nav>
+
+    <main class="layout">
+      <section class="panel-calendario">
+        <div class="panel-head">
+          <h2 id="titulo-panel">Calendario</h2>
+          <div class="leyenda">
+            <span class="leyenda-item"><i class="punto azul"></i>Con tareas</span>
+            <span class="leyenda-item"><i class="punto rojo"></i>Sin disponibilidad</span>
+          </div>
+        </div>
+        <div id="calendario" class="calendario semana"></div>
+      </section>
+
+      <aside class="panel-agenda">
+        <div class="panel-head">
+          <h2 id="titulo-agenda">Agenda</h2>
+          <span class="pill" id="pill-fecha"></span>
+        </div>
+        <div id="agenda" class="agenda"></div>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      <span id="footer-info"></span>
+    </footer>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
